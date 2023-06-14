@@ -33,15 +33,13 @@ class Unet2D_DS(Dataset):
         self.L = []
 
         for subject in self.subjects[:n]:
-            files = next(os.walk(os.path.join(data_dir, subject)))[2]
 
             mri_path   = os.path.join(data_dir, subject, self.config['data']['mri_fn'])
             label_path = os.path.join(data_dir, subject, self.config['data']['mask_fn'])
-            vol  = nib.load(label_path).get_fdata()
-            for slice_ in range(vol.shape[2]): #(self.config['model_dims'][2]):
+
+            for slice_ in range(self.config['model_dims'][2]):
                 
-                if np.any(vol[:,:,slice_]):
-                    self.L.append([subject, slice_, mri_path, label_path])
+                self.L.append([subject, slice_, mri_path, label_path])
 
         self.df = pd.DataFrame(self.L, columns=['Subject', 'Slice', 'Path MRI', 'Path Label'])
         self.df = self.df.assign(id=self.df.index.values).sample(frac=1)
@@ -75,35 +73,28 @@ def preprocess(path, config, norm=False):
 
         try:
             vol = scan.get_fdata().squeeze(3)
-            print(f'1 ={np.unique(vol)}')
             scan = nib.Nifti1Image(vol, aff)
-            # print(f'2 = {np.unique(scan.get_fdata())}')
         except:
-            print(f'3 ={np.unique(vol)}')
             vol = np.where(vol==0., 0., 1.)
             scan = nib.Nifti1Image(vol, aff)
-            print(f'4 ={np.unique(scan.get_fdata())}')
 
-    #vol  = scan.get_fdata()#np.int16(scan.get_fdata())
 
     # Remuestrea volumen y affine a un nuevo shape
+
     #new_zooms  = np.array(scan.header.get_zooms()) * config['new_z']
     #new_shape  = np.array(vol.shape) // config['new_z']
-    new_affine = nibabel.affines.rescale_affine(aff, vol.shape, config['new_z'], config['model_dims']) #new_zooms, (128, 128, 64))#new_shape)
-    scan       = nibabel.processing.conform(scan, config['model_dims'], config['new_z']) #(128, 128, 64), new_zooms)
+
+    new_affine = nibabel.affines.rescale_affine(aff, vol.shape, config['new_z'], config['model_dims'])
+    scan       = nibabel.processing.conform(scan, config['model_dims'], config['new_z']) 
     ni_img     = nib.Nifti1Image(scan.get_fdata(), new_affine)
-    vol        = ni_img.get_fdata() #np.int16(ni_img.get_fdata())
+    vol        = ni_img.get_fdata() 
+
     if 'Ras_msk' in path:
-        vol = np.where(vol<=0.1, 0., 1.)
-        print(f'5 ={np.unique(vol)}')
+        vol = np.where(vol <= 0.1, 0., 1.)
+
     if norm:
-        vol        = (vol - np.min(vol))/(np.max(vol) - np.min(vol))
+        vol = (vol - np.min(vol))/(np.max(vol) - np.min(vol))
 
     return vol
 
-# hay algunas etiquetas que no estan en el rango [0, 1] sino en el rango [0 255], binarizarlas
 
-'''
-Junio 13 2023: Muestra error ya que se enumeran los slices de acuerodo con las dimensiones de la imagen original,
-que no necesariamente son iguales a la imagen remuestreada (128x128x64)
-'''
