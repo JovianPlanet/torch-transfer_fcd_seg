@@ -57,7 +57,7 @@ def train(config):
 
     summary(unet)#, input_size=(batch_size, 1, 28, 28))
 
-    print(unet.conv_final)
+    print(unet)
     print(unet.up_convs)
 
     # Congelar las capas del modelo
@@ -66,7 +66,8 @@ def train(config):
 
     # Poner una nueva capa entrenable al final
     unet.conv_final = nn.Conv2d(64, 1, kernel_size=1, groups=1, stride=1).to(device, dtype=torch.double)
-    unet.up_convs[3] = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+    unet.up_convs[3].conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
+    #unet.up_convs.upconv = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
     summary(unet)
 
     criterion = {'CELoss' : nn.CrossEntropyLoss(),  # Cross entropy loss performs softmax by default
