@@ -11,7 +11,7 @@ def get_parameters(mode):
                    'batch_size': 8,
                    'new_z'     : [2, 2, 2],
                    'n_heads'   : 23,
-                   'n_train'   : 19, #19,
+                   'n_train'   : 19,
                    'n_val'     : 2,
                    'n_test'    : 2
     }
@@ -40,11 +40,11 @@ def get_parameters(mode):
 
     if mode == 'train':
 
-        files = {'model' : 'weights-bce(acc)-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.pth', 
-                 'losses': './outs/losses-bce(acc)-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv', 
-                 'dices' : './outs/dices-bce(acc)-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv', 
-                 'accus' : './outs/accs-bce(acc)-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv',
-                 'pics'  : './outs/imgs/bce(acc)-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
+        files = {'model' : 'weights-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.pth', 
+                 'losses': './outs/losses-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv', 
+                 'dices' : './outs/dices-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv', 
+                 'accus' : './outs/accs-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv',
+                 'pics'  : './outs/imgs/BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
 
         # Modelo preentrenado en segmentacion de tumores
         PATH_PRETRAINED_MODEL = './pretrained/weights-bcedice-20_eps-100_heads-2023-03-10-_nobn.pth'

@@ -87,7 +87,7 @@ def plot_overlays(x, y, p, mode='plot', fn='res'):
         if mode == 'plot':
             plt.show()
         elif mode == 'save':
-            savefig(fn, dpi='figure', format='pdf')
+            plt.savefig(fn, dpi='figure', format='pdf')
 
         return
 

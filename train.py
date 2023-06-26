@@ -58,6 +58,7 @@ def train(config):
     summary(unet)#, input_size=(batch_size, 1, 28, 28))
 
     print(unet.conv_final)
+    print(unet.up_convs)
 
     # Congelar las capas del modelo
     for param in unet.parameters():
@@ -65,6 +66,7 @@ def train(config):
 
     # Poner una nueva capa entrenable al final
     unet.conv_final = nn.Conv2d(64, 1, kernel_size=1, groups=1, stride=1).to(device, dtype=torch.double)
+    unet.up_convs[3] = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
     summary(unet)
 
     criterion = {'CELoss' : nn.CrossEntropyLoss(),  # Cross entropy loss performs softmax by default
@@ -131,8 +133,8 @@ def train(config):
         with torch.no_grad():
             unet.eval()
             print(f'\nValidacion\n')
-            for j, testdata in enumerate(val_dl):
-                x, y = testdata
+            for j, valdata in enumerate(val_dl):
+                x, y = valdata
                 x = x.unsqueeze(1).to(device, dtype=torch.double)
                 y = y.to(device, dtype=torch.double)
 
@@ -160,7 +162,11 @@ def train(config):
                     print(f'Accuracy promedio hasta batch No. {j+1} = {epoch_acc/(j+1):.3f}')
 
                 if torch.any(y):
-                    plot_overlays(x.squeeze(1), y, preds.squeeze(1), mode='save', fn=config['pics']+f'epoca{epoch + 1}')
+                    plot_overlays(x.squeeze(1), 
+                                  y, 
+                                  preds.squeeze(1), 
+                                  mode='save', 
+                                  fn=f"{config['files']['pics']}-epoca_{epoch + 1}-b{j}")
 
         epoch_dice = epoch_dice / (j + 1) 
         epoch_acc  = epoch_acc / (j + 1)
