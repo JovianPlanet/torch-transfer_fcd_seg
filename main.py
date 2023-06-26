@@ -1,7 +1,7 @@
 import argparse
 from config import get_parameters
 from train import train
-#from test import test
+from test import test
 #from analysis import assess
 
 def main(config):
@@ -12,7 +12,7 @@ def main(config):
 
     elif config['mode'] == 'test':
 
-        pass #test(config)
+        test(config)
 
     elif config['mode'] == 'assess':
 

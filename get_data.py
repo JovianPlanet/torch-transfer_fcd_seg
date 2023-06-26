@@ -18,15 +18,15 @@ class Unet2D_DS(Dataset):
 
         if self.mode == 'train':
             data_dir = self.config['data']['train'] 
-            n = self.config['n_train']
+            n = self.config['hyperparams']['n_train']
 
         elif self.mode == 'val':
             data_dir = self.config['data']['val']
-            n = self.config['n_val']
+            n = self.config['hyperparams']['n_val']
 
         elif self.mode == 'test':
             data_dir = self.config['data']['test']
-            n = self.config['n_test']
+            n = self.config['hyperparams']['n_test']
 
         self.subjects = next(os.walk(data_dir))[1] # [2]: lists files; [1]: lists subdirectories; [0]: root
 
@@ -37,7 +37,7 @@ class Unet2D_DS(Dataset):
             mri_path   = os.path.join(data_dir, subject, self.config['data']['mri_fn'])
             label_path = os.path.join(data_dir, subject, self.config['data']['mask_fn'])
 
-            for slice_ in range(self.config['model_dims'][2]):
+            for slice_ in range(self.config['hyperparams']['model_dims'][2]):
                 
                 self.L.append([subject, slice_, mri_path, label_path])
 
@@ -84,8 +84,17 @@ def preprocess(path, config, norm=False):
     #new_zooms  = np.array(scan.header.get_zooms()) * config['new_z']
     #new_shape  = np.array(vol.shape) // config['new_z']
 
-    new_affine = nibabel.affines.rescale_affine(aff, vol.shape, config['new_z'], config['model_dims'])
-    scan       = nibabel.processing.conform(scan, config['model_dims'], config['new_z']) 
+    new_affine = nibabel.affines.rescale_affine(aff, 
+                                                vol.shape, 
+                                                config['hyperparams']['new_z'], 
+                                                config['hyperparams']['model_dims']
+    )
+
+    scan       = nibabel.processing.conform(scan, 
+                                            config['hyperparams']['model_dims'], 
+                                            config['hyperparams']['new_z']
+    )
+     
     ni_img     = nib.Nifti1Image(scan.get_fdata(), new_affine)
     vol        = ni_img.get_fdata() 
 
