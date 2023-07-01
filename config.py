@@ -41,12 +41,12 @@ def get_parameters(mode):
 
     if mode == 'train':
 
-        files = {'model': 'weights-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn', 
-                 'losses': './outs/losses-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv', 
-                 't_dices': './outs/t-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv', 
-                 't_accus': './outs/accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv',
-                 'v_dices': './outs/v-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv',
-                 'v_accus': './outs/v-accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv',
+        files = {'model': 'weights-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn', 
+                 'losses': './outs/losses-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv', 
+                 't_dices': './outs/t-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv', 
+                 't_accus': './outs/accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
+                 'v_dices': './outs/v-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
+                 'v_accus': './outs/v-accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
                  'pics': './outs/imgs/BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
 
         # Modelo preentrenado en segmentacion de tumores

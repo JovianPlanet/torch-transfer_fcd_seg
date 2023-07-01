@@ -81,11 +81,13 @@ def train(config):
     }
 
     optimizer = Adam(unet.parameters(), lr=config['hyperparams']['lr'])
-    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.5, total_iters=20)
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=20)
 
-    acc = BinaryAccuracy(multidim_average='global').to(device, dtype=torch.double)
+    #acc = BinaryAccuracy(multidim_average='global').to(device, dtype=torch.double)
 
     best_loss = 1.0
+    best_epoch_loss = 0
+    best_epoch_dice = 0
     best_dice = None
     best_acc = None
 
@@ -130,7 +132,7 @@ def train(config):
             epoch_train_dice += batch_train_dice.item()
             train_dices.append([epoch, i, batch_train_dice.item()])
             # Accuracy
-            batch_train_acc = acc(preds_, labels.unsqueeze(1)).item()
+            batch_train_acc = torch.sum(preds_ == labels.unsqueeze(1)).item() # acc(preds_, labels.unsqueeze(1)).item()
             epoch_train_acc += batch_train_acc
             train_accs.append([epoch, i, batch_train_acc])
             '''Fin metricas'''
@@ -178,7 +180,7 @@ def train(config):
                 val_dices.append([epoch, j, batch_val_dice.item()])
 
                 # Accuracy
-                batch_val_acc = acc(preds.squeeze(1), y).item()
+                batch_val_acc = torch.sum(preds == y.unsqueeze(1)).item() #acc(preds.squeeze(1), y).item()
                 epoch_val_acc += batch_val_acc
                 val_accs.append([epoch, j, batch_val_acc])
 
@@ -187,26 +189,30 @@ def train(config):
                     print(f'Dice promedio hasta batch No. {j+1} = {epoch_val_dice/(j+1):.3f}')
                     print(f'Accuracy promedio hasta batch No. {j+1} = {epoch_val_acc/(j+1):.3f}')
 
-                if (j+1) % 8 == 0:
-                    if torch.any(y):
-                        plot_overlays(x.squeeze(1), 
-                                      y, 
-                                      preds.squeeze(1), 
-                                      mode='save', 
-                                      fn=f"{config['files']['pics']}-epoca_{epoch + 1}-b{j}")
+                #if (j+1) % 8 == 0:
+                if torch.any(y):
+                    plot_overlays(x.squeeze(1), 
+                                  y, 
+                                  preds.squeeze(1), 
+                                  mode='save', 
+                                  fn=f"{config['files']['pics']}-epoca_{epoch + 1}-b{j}")
 
         epoch_val_dice = epoch_val_dice / (j + 1) 
         epoch_val_acc  = epoch_val_acc / (j + 1)
 
         if epoch == 0:
             best_loss = epoch_loss
+            best_epoch_loss = epoch + 1
             best_dice = epoch_val_dice
+            best_epoch_dice = epoch + 1
             best_acc = epoch_val_acc
 
         if epoch_loss < best_loss:
             best_loss = epoch_loss
+            best_epoch_loss = epoch + 1
+            best_epoch_dice = epoch + 1
 
-        print(f'\nEpoch loss = {epoch_loss:.3f}, Best loss = {best_loss:.3f}')
+        print(f'\nEpoch loss = {epoch_loss:.3f}, Best loss = {best_loss:.3f} (epoca {best_epoch_loss})')
         print(f'Epoch dice (Training) = {epoch_train_dice / (i+1):.3f}')
         print(f'Epoch accuracy (Training) = {epoch_train_acc / (i+1):.3f}\n')
 
@@ -220,7 +226,7 @@ def train(config):
             # print(f'\nUpdated weights file!')
             # torch.save(unet.state_dict(), config['files']['model'])
 
-        print(f'\nEpoch dice (Validation) = {epoch_val_dice:.3f}, Best dice = {best_dice:.3f}')
+        print(f'\nEpoch dice (Validation) = {epoch_val_dice:.3f}, Best dice = {best_dice:.3f} (epoca {best_epoch_dice})')
         print(f'Epoch accuracy (Validation) = {epoch_val_acc:.3f}, Best dice = {best_acc:.3f}')
         print(f'lr = {before_lr} -> {after_lr}\n')
 
