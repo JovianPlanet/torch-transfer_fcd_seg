@@ -5,16 +5,16 @@ def get_parameters(mode):
 
     # mode = 'reg' # available modes: 'reg', 'train', 'test'
 
-    hyperparams = {'model_dims': (128, 128, 64),
-                   'lr'        : 0.0001,
-                   'epochs'    : 20,
-                   'batch_size': 1,
-                   'new_z'     : [2, 2, 2],
-                   'n_heads'   : 23,
-                   'n_train'   : 19,
-                   'n_val'     : 2,
-                   'n_test'    : 2,
-                   'batchnorm' : False
+    hyperparams = {'model_dims': (128, 128, 64), # Dimensiones de entrada al modelo
+                   'lr'        : 0.0001,         # Taza de aprendizaje
+                   'epochs'    : 20,             # Numero de epocas
+                   'batch_size': 1,              # Tama;o del batch
+                   'new_z'     : [2, 2, 2],      # Nuevo tama;o de zooms
+                   'n_heads'   : 23,             # Numero de cabezas
+                   'n_train'   : 19,             # "" Entrenamiento
+                   'n_val'     : 2,              # "" Validacion
+                   'n_test'    : 2,              # "" Prueba
+                   'batchnorm' : False           # Normalizacion de batch
     }
 
     labels = {'bgnd': 0, # Image background
