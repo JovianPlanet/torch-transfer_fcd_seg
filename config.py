@@ -7,13 +7,14 @@ def get_parameters(mode):
 
     hyperparams = {'model_dims': (128, 128, 64),
                    'lr'        : 0.0001,
-                   'epochs'    : 20, #20
-                   'batch_size': 8,
+                   'epochs'    : 20,
+                   'batch_size': 1,
                    'new_z'     : [2, 2, 2],
                    'n_heads'   : 23,
                    'n_train'   : 19,
                    'n_val'     : 2,
-                   'n_test'    : 2
+                   'n_test'    : 2,
+                   'batchnorm' : False
     }
 
     labels = {'bgnd': 0, # Image background
@@ -40,14 +41,16 @@ def get_parameters(mode):
 
     if mode == 'train':
 
-        files = {'model' : 'weights-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.pth', 
-                 'losses': './outs/losses-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv', 
-                 'dices' : './outs/dices-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv', 
-                 'accus' : './outs/accs-BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'.csv',
-                 'pics'  : './outs/imgs/BCEDice(acc)-Frz_2'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
+        files = {'model': 'weights-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn', 
+                 'losses': './outs/losses-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv', 
+                 't_dices': './outs/t-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv', 
+                 't_accus': './outs/accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv',
+                 'v_dices': './outs/v-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv',
+                 'v_accus': './outs/v-accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_bn.csv',
+                 'pics': './outs/imgs/BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
 
         # Modelo preentrenado en segmentacion de tumores
-        PATH_PRETRAINED_MODEL = './pretrained/weights-bcedice-20_eps-100_heads-2023-03-10-_nobn.pth'
+        PATH_PRETRAINED_MODEL = './pretrained/weights-BCEDice-10_eps-25_heads-2023-06-30-_nobn-e9.pth'
 
         return {'mode'        : mode,
                 'data'        : datasets,

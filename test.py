@@ -21,7 +21,7 @@ def test(config):
         batch_size=1#config['batch_size'],
     )
 
-    unet = Unet(num_classes=1, depth=5).to(device, dtype=torch.double)
+    unet = Unet(num_classes=1, depth=5, batchnorm=config['hyperparams']['batchnorm']).to(device, dtype=torch.double)
     unet.load_state_dict(torch.load(config['weights']))
 
     print(f'Test del modelo {config["weights"]}\n')

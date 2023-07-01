@@ -104,7 +104,7 @@ class UpConv(nn.Module):
 
 class Unet(nn.Module):
 
-    def __init__(self, num_classes, in_channels=1, depth=3, start_filts=64):
+    def __init__(self, num_classes, in_channels=1, depth=3, start_filts=64, batchnorm=False):
 
         """
         Arguments:
@@ -122,6 +122,7 @@ class Unet(nn.Module):
         self.num_classes = num_classes
         self.in_channels = in_channels
         self.start_filts = start_filts
+        self.batchnorm = batchnorm
         self.depth = depth
 
         self.down_convs = []
@@ -133,7 +134,7 @@ class Unet(nn.Module):
             outs = self.start_filts*(2**i)
             pooling = True if i < depth-1 else False
 
-            down_conv = DownConv(ins, outs, pooling=pooling)
+            down_conv = DownConv(ins, outs, pooling=pooling, batchnorm=self.batchnorm)
             self.down_convs.append(down_conv)
 
         # create the decoder pathway and add to a list
@@ -141,7 +142,7 @@ class Unet(nn.Module):
         for i in range(depth-1):
             ins = outs
             outs = ins // 2
-            up_conv = UpConv(ins, outs)
+            up_conv = UpConv(ins, outs, batchnorm=self.batchnorm)
             self.up_convs.append(up_conv)
 
         self.conv_final = conv1x1(outs, self.num_classes)

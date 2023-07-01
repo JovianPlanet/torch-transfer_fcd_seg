@@ -12,10 +12,10 @@ def dice_coeff(x, y, smooth=1e-6):
     x = x.reshape(-1)#view(-1)
     y = y.reshape(-1)#view(-1)
 
-    if y.sum() == 0 and x.any():
-        #print(f'sum labels = {y.sum()}')
-        x = (x==0) #torch.where(x==0, 1, 0)
-        y = (y==0)
+    # if y.sum() == 0 and x.any():
+    #     #print(f'sum labels = {y.sum()}')
+    #     x = (x==0) #torch.where(x==0, 1, 0)
+    #     y = (y==0)
     
     intersection = (x * y).sum()                            
     dice = torch.mean((2.*intersection + smooth)/(x.sum() + y.sum() + smooth))  
