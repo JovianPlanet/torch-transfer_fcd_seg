@@ -67,8 +67,8 @@ def train(config):
     # Anadir nuevas capas entrenables
     unet.conv_final = nn.Conv2d(64, 1, kernel_size=1, groups=1, stride=1).to(device, dtype=torch.double)
     unet.up_convs[3].conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
-    # unet.up_convs[3].conv1 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
-    # unet.up_convs.upconv = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+    unet.up_convs[3].conv1 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
+    unet.up_convs[3].upconv = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2).to(device, dtype=torch.double)
     summary(unet)
 
     criterion = {'CELoss' : nn.CrossEntropyLoss(),  # Cross entropy loss performs softmax by default
@@ -81,7 +81,7 @@ def train(config):
     }
 
     optimizer = Adam(unet.parameters(), lr=config['hyperparams']['lr'])
-    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=20)
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=4)
 
     #acc = BinaryAccuracy(multidim_average='global').to(device, dtype=torch.double)
 
@@ -104,8 +104,8 @@ def train(config):
         running_loss = 0.0
         running_dice = 0.0
         epoch_loss   = 0.0
-        epoch_train_dice = 0
-        epoch_train_acc = 0
+        ep_tr_dice = 0
+        ep_tr_acc = 0
 
         print(f'\n\nEpoch {epoch + 1}\n')
 
@@ -128,29 +128,30 @@ def train(config):
             pval_  = probs_(outputs) 
             preds_ = torch.where(pval_>0.1, 1., 0.)
             # Dice coefficient
-            batch_train_dice = dice_coeff(preds_, labels.unsqueeze(1))
-            epoch_train_dice += batch_train_dice.item()
-            train_dices.append([epoch, i, batch_train_dice.item()])
+            ba_tr_dice = dice_coeff(preds_, labels.unsqueeze(1))
+            ep_tr_dice += ba_tr_dice.item()
+            train_dices.append([epoch, i, ba_tr_dice.item()])
             # Accuracy
-            batch_train_acc = torch.sum(preds_ == labels.unsqueeze(1)).item() # acc(preds_, labels.unsqueeze(1)).item()
-            epoch_train_acc += batch_train_acc
-            train_accs.append([epoch, i, batch_train_acc])
+            ba_tr_acc = torch.sum(preds_ == labels.unsqueeze(1)).item() / (128*128) # acc(preds_, labels.unsqueeze(1)).item()
+            ep_tr_acc += ba_tr_acc
+            train_accs.append([epoch, i, ba_tr_acc])
             '''Fin metricas'''
-
-            if (i+1) % 50 == 0: 
-                print(f'Batch No. {(i+1)} loss = {loss.item():.3f}')
-                print(f'Accuracy = {batch_train_acc}, Dice = {batch_train_dice}')
 
             running_loss += loss.item()
             optimizer.zero_grad()            # zero the parameter gradients
             loss.backward(retain_graph=True) # retain_graph=True
-            
             optimizer.step()
+
             losses.append([epoch, i, loss.item()])
 
+            if (i+1) % 50 == 0: 
+                print(f'Batch No. {i+1}')
+                print(f'Loss = {running_loss/(i+1):.3f}')
+                print(f'Accuracy (prom) = {ep_tr_acc/(i+1):.3f}, Dice (prom) = {ep_tr_dice/(i+1):.3f}')
+
         before_lr = optimizer.param_groups[0]["lr"]
-        # if epoch > 5:
-        scheduler.step()
+        if (epoch + 1) % 5 == 0: 
+            scheduler.step()
         after_lr = optimizer.param_groups[0]["lr"]
             
         epoch_loss = running_loss/(i + 1)  
@@ -180,7 +181,7 @@ def train(config):
                 val_dices.append([epoch, j, batch_val_dice.item()])
 
                 # Accuracy
-                batch_val_acc = torch.sum(preds == y.unsqueeze(1)).item() #acc(preds.squeeze(1), y).item()
+                batch_val_acc = torch.sum(preds == y.unsqueeze(1)).item() / (128*128) #acc(preds.squeeze(1), y).item()
                 epoch_val_acc += batch_val_acc
                 val_accs.append([epoch, j, batch_val_acc])
 
@@ -195,7 +196,7 @@ def train(config):
                                   y, 
                                   preds.squeeze(1), 
                                   mode='save', 
-                                  fn=f"{config['files']['pics']}-epoca_{epoch + 1}-b{j}")
+                                  fn=f"{config['files']['pics']}-epoca_{epoch + 1}-b{j}.pdf")
 
         epoch_val_dice = epoch_val_dice / (j + 1) 
         epoch_val_acc  = epoch_val_acc / (j + 1)
@@ -210,24 +211,22 @@ def train(config):
         if epoch_loss < best_loss:
             best_loss = epoch_loss
             best_epoch_loss = epoch + 1
-            best_epoch_dice = epoch + 1
 
         print(f'\nEpoch loss = {epoch_loss:.3f}, Best loss = {best_loss:.3f} (epoca {best_epoch_loss})')
-        print(f'Epoch dice (Training) = {epoch_train_dice / (i+1):.3f}')
-        print(f'Epoch accuracy (Training) = {epoch_train_acc / (i+1):.3f}\n')
+        print(f'Epoch dice (Training) = {ep_tr_dice / (i+1):.3f}')
+        print(f'Epoch accuracy (Training) = {ep_tr_acc / (i+1):.3f}\n')
 
         if epoch_val_dice > best_dice:
             best_dice = epoch_val_dice
+            best_epoch_dice = epoch + 1
             #print(f'\nUpdated weights file!')
         torch.save(unet.state_dict(), config['files']['model']+f'-e{epoch+1}.pth')
 
         if epoch_val_acc > best_acc:
             best_acc = epoch_val_acc
-            # print(f'\nUpdated weights file!')
-            # torch.save(unet.state_dict(), config['files']['model'])
 
         print(f'\nEpoch dice (Validation) = {epoch_val_dice:.3f}, Best dice = {best_dice:.3f} (epoca {best_epoch_dice})')
-        print(f'Epoch accuracy (Validation) = {epoch_val_acc:.3f}, Best dice = {best_acc:.3f}')
+        print(f'Epoch accuracy (Validation) = {epoch_val_acc:.3f}, Best accuracy = {best_acc:.3f}')
         print(f'lr = {before_lr} -> {after_lr}\n')
 
     df_loss = pd.DataFrame(losses, columns=['Epoca', 'Batch', 'Loss'])
