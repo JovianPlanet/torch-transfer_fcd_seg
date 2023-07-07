@@ -6,7 +6,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 import torch.optim.lr_scheduler as lr_scheduler
 from tqdm import tqdm
-from torchmetrics.classification import BinaryAccuracy
+from torchmetrics.classification import BinaryAccuracy, Dice
 from torchmetrics.functional import dice
 from torchinfo import summary
 from unet import Unet
@@ -75,6 +75,7 @@ def train(config):
                  'BCELog' : nn.BCEWithLogitsLoss(), # BCEWithLogitsLoss performs sigmoid by default
                  'BCE'    : nn.BCELoss(),
                  'Dice'   : DiceLoss(),
+                 'TmDice' : Dice(threshold=0.1, ignore_index=0),                 # Dice de torchmetrics
                  'BCEDice': BCEDiceLoss(),
                  'Focal'  : FocalLoss(),
                  'Tversky': TverskyLoss()
@@ -84,6 +85,7 @@ def train(config):
     scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=4)
 
     #acc = BinaryAccuracy(multidim_average='global').to(device, dtype=torch.double)
+    metric = Dice(threshold=0.1, ignore_index=0).to(device, dtype=torch.double)
 
     best_loss = 1.0
     best_epoch_loss = 0
@@ -120,8 +122,8 @@ def train(config):
             outputs = unet(inputs)
             #plot_batch(masks_pred, labels)
 
-            loss = criterion['BCEDice'](outputs.double(), labels.unsqueeze(1)) #(outputs.double().squeeze(1), labels) # Utilizar esta linea para BCELoss o DiceLoss
-            #loss = criterion(outputs, labels.long()) # Utilizar esta linea para Cross entropy loss (multiclase)
+            loss = criterion['BCEDice'](outputs.double(), labels.unsqueeze(1)) # Utilizar para BCELoss o DiceLoss
+            #loss = criterion(outputs, labels.long()) # Utilizar para Cross entropy loss (multiclase)
 
             '''Metricas'''
             probs_ = nn.Sigmoid()  # Sigmoid para biclase
@@ -175,10 +177,12 @@ def train(config):
                 #preds = torch.argmax(pval, dim=1)
 
                 # Dice coefficient
-                batch_val_dice = dice_coeff(preds.squeeze(1), y)
+                batch_val_dice = dice_coeff(preds, y.unsqueeze(1))
                 #batch_val_dice = dice(preds.squeeze(1), y.long(), ignore_index=0, zero_division=1) # version de torchmetrics de la metrica
                 epoch_val_dice += batch_val_dice.item()
                 val_dices.append([epoch, j, batch_val_dice.item()])
+                # Dice torchmetrics
+                metric.update(preds, y.unsqueeze(1).long())
 
                 # Accuracy
                 batch_val_acc = torch.sum(preds == y.unsqueeze(1)).item() / (128*128) #acc(preds.squeeze(1), y).item()
@@ -188,6 +192,7 @@ def train(config):
                 if (j+1) % 20 == 0: 
                     print(f'pval min = {pval.min():.3f}, pval max = {pval.max():.3f}')
                     print(f'Dice promedio hasta batch No. {j+1} = {epoch_val_dice/(j+1):.3f}')
+                    print(f'Dice torchmetrics hasta batch No. {j+1} = {metric.compute():.3f}')
                     print(f'Accuracy promedio hasta batch No. {j+1} = {epoch_val_acc/(j+1):.3f}')
 
                 #if (j+1) % 8 == 0:
@@ -226,8 +231,10 @@ def train(config):
             best_acc = epoch_val_acc
 
         print(f'\nEpoch dice (Validation) = {epoch_val_dice:.3f}, Best dice = {best_dice:.3f} (epoca {best_epoch_dice})')
+        print(f'Epoch Dice torchmetrics (Validation) = {metric.compute():.3f}')
         print(f'Epoch accuracy (Validation) = {epoch_val_acc:.3f}, Best accuracy = {best_acc:.3f}')
         print(f'lr = {before_lr} -> {after_lr}\n')
+        metric.reset()
 
     df_loss = pd.DataFrame(losses, columns=['Epoca', 'Batch', 'Loss'])
     df_loss = df_loss.assign(id=df_loss.index.values)

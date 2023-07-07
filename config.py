@@ -6,7 +6,7 @@ def get_parameters(mode):
     # mode = 'reg' # available modes: 'reg', 'train', 'test'
 
     hyperparams = {'model_dims': (128, 128, 64), # Dimensiones de entrada al modelo
-                   'lr'        : 0.0001,         # Taza de aprendizaje
+                   'lr'        : 0.00001,         # Taza de aprendizaje
                    'epochs'    : 20,             # Numero de epocas
                    'batch_size': 1,              # Tama;o del batch
                    'new_z'     : [2, 2, 2],      # Nuevo tama;o de zooms
@@ -41,13 +41,13 @@ def get_parameters(mode):
 
     if mode == 'train':
 
-        files = {'model': 'weights-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn', 
-                 'losses': './outs/losses-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv', 
-                 't_dices': './outs/t-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv', 
-                 't_accus': './outs/t-accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
-                 'v_dices': './outs/v-dices-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
-                 'v_accus': './outs/v-accs-BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
-                 'pics': './outs/imgs/BCEDice-Frz_2-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
+        files = {'model': 'weights-TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn', 
+                 'losses': './outs/losses-TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv', 
+                 't_dices': './outs/t-dices-TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv', 
+                 't_accus': './outs/t-accs-TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
+                 'v_dices': './outs/v-dices-TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
+                 'v_accus': './outs/v-accs-TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())+'-_nobn.csv',
+                 'pics': './outs/imgs/TmDice-Frz_4-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
 
         # Modelo preentrenado en segmentacion de tumores
         PATH_PRETRAINED_MODEL = './pretrained/weights-BCEDice-20_eps-100_heads-2023-07-03-_nobn-e20.pth'
