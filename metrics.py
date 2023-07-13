@@ -30,6 +30,8 @@ class DiceLoss(nn.Module):
         super(DiceLoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1e-6):
+        # Targets: ground truth
+        # Inputs: model predictions
         
         #comment out if your model contains a sigmoid or equivalent activation layer
         preds = nn.Sigmoid()  
@@ -39,10 +41,10 @@ class DiceLoss(nn.Module):
         inputs = inputs.reshape(-1)#view(-1)
         targets = targets.reshape(-1)#view(-1)
 
-        # if targets.sum() == 0 and inputs.sum() > 0:
-        #     inputs = torch.where(inputs==0, 1, 0)#(inputs==0) 
-        #     targets = torch.where(targets==0, 1, 0)#(targets==0)
-        
+        # if targets.sum() > 0 and inputs.sum() == 0:
+        #     inputs = torch.where(inputs==0, 1., 0.)#(inputs==0) 
+        #     targets = torch.where(targets==0, 1., 0.)#(targets==0)
+
         intersection = (inputs * targets).sum()                            
         dice = torch.mean((2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth))  
         

@@ -8,10 +8,11 @@ import nibabel.processing
 
 class Unet2D_DS(Dataset):
 
-    def __init__(self, config, mode):
+    def __init__(self, config, mode, cropds=False):
 
         self.config = config
         self.mode   = mode
+        self.cropds = cropds
 
         data_dir = ''
         n = 0
@@ -36,10 +37,22 @@ class Unet2D_DS(Dataset):
 
             mri_path   = os.path.join(data_dir, subject, self.config['data']['mri_fn'])
             label_path = os.path.join(data_dir, subject, self.config['data']['mask_fn'])
+            head  = preprocess(label_path, self.config)
 
+            a = True
             for slice_ in range(self.config['hyperparams']['model_dims'][2]):
+
+                if self.cropds:
                 
-                self.L.append([subject, slice_, mri_path, label_path])
+                    if np.any(head[:, :, slice_]):
+                        self.L.append([subject, slice_, mri_path, label_path])
+                        # if slice_ > 3 and a:
+                        #     self.L.append([subject, slice_-1, mri_path, label_path])
+                        #     self.L.append([subject, slice_-2, mri_path, label_path])
+                        #     self.L.append([subject, slice_-3, mri_path, label_path])
+                        #     a = False
+                else:
+                    self.L.append([subject, slice_, mri_path, label_path])
 
         self.df = pd.DataFrame(self.L, columns=['Subject', 'Slice', 'Path MRI', 'Path Label'])
         self.df = self.df.assign(id=self.df.index.values).sample(frac=1)

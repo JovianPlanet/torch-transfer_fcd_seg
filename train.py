@@ -13,6 +13,7 @@ from unet import Unet
 from metrics import DiceLoss, dice_coeff, BCEDiceLoss, FocalLoss, TverskyLoss
 from get_data import Unet2D_DS
 from utils.plots import plot_overlays
+from utils.write_params import conf_txt, summary_txt
 
 
 def train(config):
@@ -28,7 +29,7 @@ def train(config):
     print(f"Nombre de archivo del modelo: {config['files']['model']}\n")
 
     # Datasets #
-    ds_train = Unet2D_DS(config, 'train')
+    ds_train = Unet2D_DS(config, 'train', cropds=config['hyperparams']['crop'])
     ds_val   = Unet2D_DS(config, 'val')
 
     train_dl = DataLoader(
@@ -58,7 +59,6 @@ def train(config):
     summary(unet)#, input_size=(batch_size, 1, 28, 28))
 
     print(unet)
-    print(unet.up_convs)
 
     # Congelar las capas del modelo
     for param in unet.parameters():
@@ -69,16 +69,16 @@ def train(config):
     unet.up_convs[3].conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
     unet.up_convs[3].conv1 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
     unet.up_convs[3].upconv = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2).to(device, dtype=torch.double)
+    
     summary(unet)
+
+    pos_weight = torch.Tensor([config['hyperparams']['class_w']]).to(device, dtype=torch.double)
 
     criterion = {'CELoss' : nn.CrossEntropyLoss(),  # Cross entropy loss performs softmax by default
                  'BCELog' : nn.BCEWithLogitsLoss(), # BCEWithLogitsLoss performs sigmoid by default
-                 'BCE'    : nn.BCELoss(),
+                 'BCELogW': nn.BCEWithLogitsLoss(pos_weight=pos_weight), # BCEWithLogitsLoss with weighted classes
                  'Dice'   : DiceLoss(),
-                 'TmDice' : Dice(threshold=0.1, ignore_index=0),                 # Dice de torchmetrics
                  'BCEDice': BCEDiceLoss(),
-                 'Focal'  : FocalLoss(),
-                 'Tversky': TverskyLoss()
     }
 
     optimizer = Adam(unet.parameters(), lr=config['hyperparams']['lr'])
@@ -86,6 +86,9 @@ def train(config):
 
     #acc = BinaryAccuracy(multidim_average='global').to(device, dtype=torch.double)
     metric = Dice(threshold=0.1, ignore_index=0).to(device, dtype=torch.double)
+
+    conf_txt(config)
+    summary_txt(config, str(summary(unet)))
 
     best_loss = 1.0
     best_epoch_loss = 0
@@ -122,7 +125,7 @@ def train(config):
             outputs = unet(inputs)
             #plot_batch(masks_pred, labels)
 
-            loss = criterion['BCEDice'](outputs.double(), labels.unsqueeze(1)) # Utilizar para BCELoss o DiceLoss
+            loss = criterion[config['hyperparams']['crit']](outputs.double(), labels.unsqueeze(1)) # Utilizar para BCELoss o DiceLoss
             #loss = criterion(outputs, labels.long()) # Utilizar para Cross entropy loss (multiclase)
 
             '''Metricas'''
@@ -152,7 +155,7 @@ def train(config):
                 print(f'Accuracy (prom) = {ep_tr_acc/(i+1):.3f}, Dice (prom) = {ep_tr_dice/(i+1):.3f}')
 
         before_lr = optimizer.param_groups[0]["lr"]
-        if (epoch + 1) % 5 == 0: 
+        if (epoch + 1) % 3 == 0: 
             scheduler.step()
         after_lr = optimizer.param_groups[0]["lr"]
             
@@ -182,7 +185,7 @@ def train(config):
                 epoch_val_dice += batch_val_dice.item()
                 val_dices.append([epoch, j, batch_val_dice.item()])
                 # Dice torchmetrics
-                metric.update(preds, y.unsqueeze(1).long())
+                metric.update(pval, y.unsqueeze(1).long())
 
                 # Accuracy
                 batch_val_acc = torch.sum(preds == y.unsqueeze(1)).item() / (128*128) #acc(preds.squeeze(1), y).item()
@@ -225,7 +228,11 @@ def train(config):
             best_dice = epoch_val_dice
             best_epoch_dice = epoch + 1
             #print(f'\nUpdated weights file!')
-        torch.save(unet.state_dict(), config['files']['model']+f'-e{epoch+1}.pth')
+
+        try:
+            torch.save(unet.state_dict(), config['files']['model']+f'-e{epoch+1}.pth')
+        except:
+            print(f'\nNo se pudo guardar el archivo de pesos. Revise espacio en disco.')
 
         if epoch_val_acc > best_acc:
             best_acc = epoch_val_acc
