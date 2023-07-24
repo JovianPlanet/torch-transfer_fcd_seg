@@ -9,10 +9,10 @@ def get_parameters(mode):
 
     hyperparams = {'model_dims': (128, 128, 64), # Dimensiones de entrada al modelo
                    'new_z'     : [2, 2, 2],      # Nuevo tama;o de zooms
-                   'lr'        : 0.0005,         # Taza de aprendizaje
+                   'lr'        : 0.0005,#0.0005,         # Taza de aprendizaje
                    'epochs'    : 20,             # Numero de epocas
                    'batch_size': 1,              # Tama;o del batch
-                   'crit'      : 'BCELog',       # Fn de costo. Opciones: 'CELoss', 'BCELog', 'BCELogW', 'BCEDice', 'Dice'
+                   'crit'      : 'BCEDice',     # Fn de costo. Opciones: 'BCEDiceW','BCELog','BCELogW','BCEDice','Dice'
                    'n_train'   : 19,             # "" Entrenamiento
                    'n_val'     : 2,              # "" Validacion
                    'n_test'    : 2,              # "" Prueba
@@ -46,32 +46,24 @@ def get_parameters(mode):
     datasets = {'train': iatm_train, 'val': iatm_val, 'test': iatm_test, 'mri_fn': mri_fn, 'mask_fn': mask_fn}
 
     folder = './outs/Ex-' + datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    img_folder = os.path.join(folder, 'imgs')
-
-    Path(folder).mkdir(parents=True, exist_ok=True)
-    Path(img_folder).mkdir(parents=True, exist_ok=True)
 
     if mode == 'train':
 
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        Path(os.path.join(folder, 'val_imgs')).mkdir(parents=True, exist_ok=True)
+
         files = {'model'  : os.path.join(folder, 'weights'),
                  'losses' : os.path.join(folder, 'losses.csv'),
-                 't_dices': os.path.join(folder, 't_dices.csv'),
-                 't_accus': os.path.join(folder, 'train_acc.csv'),
-                 'v_dices': os.path.join(folder, 'v_dices.csv'),
-                 'v_accus': os.path.join(folder, 'val_acc.csv'),
-                 'pics'   : os.path.join(img_folder, 'seg'),
+                 't_mets' : os.path.join(folder, 'train_metrics.csv'),
+                 'v_mets' : os.path.join(folder, 'val_metrics.csv'),
+                 'pics'   : os.path.join(folder, 'val_imgs', 'img'),
                  'params' : os.path.join(folder, 'params.txt'),
-                 'summary': os.path.join(folder, 'cnn_summary.txt')}
-
-        # files = {'model': 'weights-BCEDice-Frz_4-w5-''-_nobn', 
-        #          'losses': './outs/losses-BCEDice-Frz_4-w5-''-_nobn.csv', 
-        #          't_dices': './outs/t-dices-BCEDice-Frz_4-w5-''-_nobn.csv', 
-        #          't_accus': './outs/t-accs-BCEDice-Frz_4-w5-''-_nobn.csv',
-        #          'v_dices': './outs/v-dices-BCEDice-Frz_4-w5-''-_nobn.csv',
-        #          'v_accus': './outs/v-accs-BCEDice-Frz_4-w5-''-_nobn.csv',
-        #          'pics': './outs/imgs/BCEDice-Frz_4-w5-'+str(hyperparams['epochs'])+'_eps-'+str(datetime.date.today())}
+                 'summary': os.path.join(folder, 'cnn_summary.txt'),
+                 'log'    : os.path.join(folder, 'train.log')
+                }
 
         # Modelo preentrenado en segmentacion de tumores
+        #PATH_PRETRAINED_MODEL = './pretrained/Ex-2023-07-18-13-56-48weights-e11.pth' 
         PATH_PRETRAINED_MODEL = './pretrained/weights-BCEDice-20_eps-100_heads-2023-07-03-_nobn-e20.pth'
 
         return {'mode'        : mode,
@@ -83,7 +75,6 @@ def get_parameters(mode):
 
     elif mode == 'test':
 
-        # En este archivo se guarda el modelo de segmentacion de FCD por transfer learning
         PATH_TRAINED_MODEL = './outs/imgs/weights-BCELog-Frz_4-w5-20_eps-2023-07-09-_nobnFCDe6(muy bueno, no se si el mejor)/weights-BCELog-Frz_4-20_eps-2023-07-07-_nobn-e20.pth'
 
         # CSV con resultados de Dice en test del modelo de segmentacion de FCD

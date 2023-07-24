@@ -56,7 +56,7 @@ class Unet2D_DS(Dataset):
 
         self.df = pd.DataFrame(self.L, columns=['Subject', 'Slice', 'Path MRI', 'Path Label'])
         self.df = self.df.assign(id=self.df.index.values).sample(frac=1)
-        print(f'dataframe: \n{self.df} \n')
+        #print(f'dataframe: \n{self.df} \n')
 
 
     def __len__(self):

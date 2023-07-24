@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 '''
 Implementaci'on de Unet basado en: https://github.com/jaxony/unet-pytorch
-con algunas modificaciones (se quita la 'ultima capa conv1x1 del decoder) y simplificaciones
+con algunas modificaciones propias (se quita la 'ultima capa conv1x1 del decoder)
 '''
 
 def conv3x3(in_channels, out_channels, stride=1, 

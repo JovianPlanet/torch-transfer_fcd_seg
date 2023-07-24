@@ -31,6 +31,7 @@ if __name__ == '__main__':
                         'train', 'test' y 'assess'\n \
                         La opcion por defecto es 'train'"
     )
+    
     args = parser.parse_args()
     config = get_parameters(args.mode)
     main(config)

@@ -14,7 +14,8 @@ Numero de clases        = {config['hyperparams']['nclasses']}
 Umbral                  = {config['hyperparams']['thres']}     
 Peso de la clase        = {config['hyperparams']['class_w']}
 Recortar volumenes      = {config['hyperparams']['crop']}
-Nro capas entrenables   = {config['hyperparams']['crop']}"""#.replace('\t', '')
+Nro capas entrenables   = {config['hyperparams']['crop']}
+Modelo preentrenado     = {config['pretrained']}"""#.replace('\t', '')
 
     with open(config['files']['params'], 'w') as f:
         f.write(text)
@@ -24,4 +25,10 @@ def summary_txt(config, summ):
 
     with open(config['files']['summary'], 'w') as f:
         f.write(summ)
+
+def train_log(config, log):
+
+    with open(config['files']['log'], 'a') as f:
+        f.write(log)
+
 

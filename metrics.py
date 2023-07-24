@@ -66,6 +66,21 @@ class BCEDiceLoss(nn.Module):
 
         return  dice_loss + bce_loss
 
+class BCEDiceLossW(nn.Module):
+    def __init__(self, weight = None, size_average = True, device='device'):
+        super(BCEDiceLoss, self).__init__()
+        self.bce = nn.BCEWithLogitsLoss(pos_weight=weight)
+        self.dice = DiceLoss() # Usar el dice de este codigo
+        #self.dice = Dice(zero_division=1, ignore_index=0).to(device) # Usar el dice de torchmetrics
+
+    def forward(self, inputs, targets, smooth = 1):
+        assert(inputs.shape == targets.shape)
+        # dice_loss = 1. - self.dice(inputs, targets.long()) # Para el dice de la libreria torchmetrics
+        dice_loss = self.dice(inputs, targets)
+        bce_loss = self.bce(inputs, targets)
+
+        return  dice_loss + bce_loss
+
 
 class FocalLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):

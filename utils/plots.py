@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+import numpy as np
 import torch
 
 def plot_batch(x, y):
@@ -52,19 +52,22 @@ def plot_overlays(x, y, p, mode='plot', fn='res'):
 
     for im in range(x.shape[0]):
 
-        fig = plt.figure(figsize=(16, 16))
+        fig = plt.figure()#(figsize=(16, 16))
         fig.subplots_adjust(hspace=1, wspace=1)
 
         ax1 = fig.add_subplot(2, 3, 1)
         ax1.axis("off")
+        ax1.title.set_text('Original')
         ax1.imshow(x[im, :, :].cpu().detach().numpy(), cmap="gray")
 
         ax2 = fig.add_subplot(2, 3, 2)
         ax2.axis("off")
+        ax2.title.set_text('Etiquetas')
         ax2.imshow(y[im, :, :].cpu().detach().numpy(), cmap="gray")
 
         ax3 = fig.add_subplot(2, 3, 3)
         ax3.axis("off")
+        ax3.title.set_text('Predicción')
         ax3.imshow(p[im, :, :].cpu().detach().numpy(), cmap="gray")
 
         ax4 = fig.add_subplot(2, 3, 4)
@@ -74,13 +77,15 @@ def plot_overlays(x, y, p, mode='plot', fn='res'):
         ax5 = fig.add_subplot(2, 3, 5)
         ax5.axis("off")
         ax5.imshow(x[im, :, :].cpu().detach().numpy(), cmap="gray")
-        ax5.imshow(y[im, :, :].cpu().detach().numpy(), cmap='gray', alpha=0.5)
+        y[im, :, :][y[im, :, :]< 0.000001] = np.nan
+        ax5.imshow(y[im, :, :].cpu().detach().numpy(), cmap='Spectral', alpha=0.5)
 
 
         ax6 = fig.add_subplot(2, 3, 6)
         ax6.axis("off")
         ax6.imshow(x[im, :, :].cpu().detach().numpy(), cmap="gray")
-        ax6.imshow(p[im, :, :].cpu().detach().numpy(), cmap="gray", alpha=0.5)
+        p[im, :, :][p[im, :, :]< 0.000001] = np.nan
+        ax6.imshow(p[im, :, :].cpu().detach().numpy(), cmap="Spectral", alpha=0.5)
 
         fig.tight_layout()
 
@@ -88,6 +93,8 @@ def plot_overlays(x, y, p, mode='plot', fn='res'):
             plt.show()
         elif mode == 'save':
             plt.savefig(fn, dpi='figure', format='pdf')
+
+        plt.close('all')
 
         return
 
