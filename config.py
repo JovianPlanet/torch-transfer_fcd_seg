@@ -9,10 +9,10 @@ def get_parameters(mode):
 
     hyperparams = {'model_dims': (128, 128, 64), # Dimensiones de entrada al modelo
                    'new_z'     : [2, 2, 2],      # Nuevo tama;o de zooms
-                   'lr'        : 0.0005,#0.0005,         # Taza de aprendizaje
-                   'epochs'    : 20,             # Numero de epocas
+                   'lr'        : 0.001,          # Taza de aprendizaje
+                   'epochs'    : 50,             # Numero de epocas
                    'batch_size': 1,              # Tama;o del batch
-                   'crit'      : 'BCEDice',     # Fn de costo. Opciones: 'BCEDiceW','BCELog','BCELogW','BCEDice','Dice'
+                   'crit'      : 'Focal',        # Fn de costo. Opciones: 'BCEDiceW','BCELog','BCELogW','BCEDice','Dice', 'Focal'
                    'n_train'   : 19,             # "" Entrenamiento
                    'n_val'     : 2,              # "" Validacion
                    'n_test'    : 2,              # "" Prueba
@@ -75,34 +75,55 @@ def get_parameters(mode):
 
     elif mode == 'test':
 
-        PATH_TRAINED_MODEL = './outs/imgs/weights-BCELog-Frz_4-w5-20_eps-2023-07-09-_nobnFCDe6(muy bueno, no se si el mejor)/weights-BCELog-Frz_4-20_eps-2023-07-07-_nobn-e20.pth'
+        ex = './outs/Ex-2023-07-31-23-29-24'#Ex-2023-07-29-14-57-27'#Ex-2023-07-27-19-34-39' Replica del primero mejor
+        # Ex-2023-07-27-19-34-39
+        # Ex-2023-07-29-09-14-58
+        # Ex-2023-07-29-14-57-27
+        # Ex-2023-07-31-00-13-12
+        # Ex-2023-07-31-23-29-24
+        mo = 'weights-e50.pth'
 
-        # CSV con resultados de Dice en test del modelo de segmentacion de FCD
-        PATH_TEST_DICES = './outs/dice_coeff'+PATH_TRAINED_MODEL[7:-4]+'-test.csv' # CSV con resultados de Dice en test
+        test_folder = os.path.join(ex, 'test'+mo[:-4])
+        Path(test_folder).mkdir(parents=True, exist_ok=True)
+        img_folder = os.path.join(test_folder, 'imgs')
+        Path(img_folder).mkdir(parents=True, exist_ok=True)
 
-        threshold = 0.1
+        PATH_TRAINED_MODEL = os.path.join(ex, mo) #'./outs/Ex/prueba.pth' # 'weights-bcedice-20_eps-100_heads-2023-03-10-_nobn.pth'
+        PATH_TEST_METS = os.path.join(test_folder, mo+'-test_metrics.csv')#'./outs/Ex/test_metrics.csv'
 
         return {'mode'       : mode,
                 'data'       : datasets,
                 'hyperparams': hyperparams,
-                'thres'      : threshold,
                 'labels'     : labels,
                 'weights'    : PATH_TRAINED_MODEL,
-                'test_fn'    : PATH_TEST_DICES,
+                'test_fn'    : PATH_TEST_METS,
+                'img_folder' : img_folder,
         }
 
     elif mode == 'assess':
 
-        train_losses = './outs/losses-bcedice-20_eps-100_heads-2023-03-10-_nobn.csv'
-        train_dices  = './outs/dices-bcedice-20_eps-100_heads-2023-03-10-_nobn.csv'
-        test_dices = './outs/dice_coeff-bcedice-20_eps-100_heads-2023-03-10-_nobn-test.csv'
+        ex = './outs/Ex-2023-07-31-23-29-24'#Ex-2023-07-29-14-57-27'#Ex-2023-07-27-19-34-39'
+        ep = 50
+        mo = f'weights-e{ep}.pth'
 
-        files = {'train_Loss': train_losses,
-                 'train_Dice': train_dices,
-                 'test_Dice' : test_dices}
+        plots_folder = os.path.join(ex, 'plots-weights_'+mo[-7:-4])
+
+        Path(plots_folder).mkdir(parents=True, exist_ok=True)
+
+        train_losses = 'losses.csv'
+        train_mets  = 'train_metrics.csv'
+        val_mets = 'val_metrics.csv'
+        test_mets = f'weights-e{ep}.pth-test_metrics.csv'
+
+        files = {'train_Loss': os.path.join(ex, train_losses),
+                 'train_mets': os.path.join(ex, train_mets),
+                 'val_mets'  : os.path.join(ex, val_mets),
+                 'test_mets' : os.path.join(ex, f'testweights-e{ep}', test_mets)
+        }
 
         return {'mode'     : mode,
                 'labels'   : labels,
-                'losses_fn': losses_fn,
-                'dices_fn' : dices_fn,
-                'files'    : files}
+                'files'    : files,
+                'plots'    : plots_folder,
+                'hyperparams': hyperparams,
+        }

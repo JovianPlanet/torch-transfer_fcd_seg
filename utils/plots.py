@@ -77,15 +77,17 @@ def plot_overlays(x, y, p, mode='plot', fn='res'):
         ax5 = fig.add_subplot(2, 3, 5)
         ax5.axis("off")
         ax5.imshow(x[im, :, :].cpu().detach().numpy(), cmap="gray")
-        y[im, :, :][y[im, :, :]< 0.000001] = np.nan
-        ax5.imshow(y[im, :, :].cpu().detach().numpy(), cmap='Spectral', alpha=0.5)
+        #y[im, :, :] = torch.where(y[im, :, :]==0., torch.nan, y[im, :, :])
+        y[im, :, :][y[im, :, :]==0] = np.nan#y[im, :, :][y[im, :, :]< 0.000001] = np.nan
+        ax5.imshow(y[im, :, :].cpu().detach().numpy(), cmap='Spectral', alpha=0.8)
 
 
         ax6 = fig.add_subplot(2, 3, 6)
         ax6.axis("off")
         ax6.imshow(x[im, :, :].cpu().detach().numpy(), cmap="gray")
-        p[im, :, :][p[im, :, :]< 0.000001] = np.nan
-        ax6.imshow(p[im, :, :].cpu().detach().numpy(), cmap="Spectral", alpha=0.5)
+        #p[im, :, :] = torch.where(p[im, :, :]==0., torch.nan, p[im, :, :])
+        p[im, :, :][p[im, :, :]==0] = np.nan#p[im, :, :][p[im, :, :]< 0.000001] = np.nan
+        ax6.imshow(p[im, :, :].cpu().detach().numpy(), cmap="Spectral", alpha=0.8)
 
         fig.tight_layout()
 

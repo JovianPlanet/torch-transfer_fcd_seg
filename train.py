@@ -11,7 +11,7 @@ from torchmetrics.functional import dice
 from torchinfo import summary
 
 from unet import Unet
-from metrics import DiceLoss, dice_coeff, BCEDiceLoss, BCEDiceLossW
+from metrics import DiceLoss, dice_coeff, BCEDiceLoss, BCEDiceLossW, TverskyLoss, FocalLoss
 from get_data import Unet2D_DS
 from utils.plots import plot_overlays
 from utils.write_params import conf_txt, summary_txt
@@ -70,6 +70,10 @@ def train(config):
     unet.up_convs[3].conv1 = nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
     unet.up_convs[3].upconv = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2).to(device, dtype=torch.double)
     
+    #unet.up_convs[2].conv2 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
+    # unet.up_convs[2].conv1 = nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
+    # unet.up_convs[2].upconv = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2).to(device, dtype=torch.double)
+    #unet.down_convs[0].conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=True, groups=1).to(device, dtype=torch.double)
     summary(unet)
 
     pos_weight = torch.Tensor([config['hyperparams']['class_w']]).to(device, dtype=torch.double)
@@ -79,25 +83,27 @@ def train(config):
                  'BCELogW': nn.BCEWithLogitsLoss(pos_weight=pos_weight), # BCEWithLogitsLoss with weighted classes
                  'Dice'   : DiceLoss(),
                  'BCEDice': BCEDiceLoss(),
-                 'BCEDiceW': BCEDiceLossW(weight=pos_weight)
+                 'BCEDiceW': BCEDiceLossW(pos_weight=pos_weight),
+                 'Tversky': TverskyLoss(),
+                 'Focal'  : FocalLoss(),
     }
 
     optimizer = Adam(unet.parameters(), lr=config['hyperparams']['lr'])
-    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=4)
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1., end_factor=0.1, total_iters=3)
 
-    t_acc = BinaryAccuracy(threshold=0.1).to(device, dtype=torch.double)
-    t_dic = Dice(zero_division=0, threshold=0.1, ignore_index=0).to(device, dtype=torch.double) # zero_division=1
-    t_f1s = BinaryF1Score(threshold=0.1).to(device, dtype=torch.double)
-    t_rec = BinaryRecall(threshold=0.1).to(device, dtype=torch.double)
-    t_pre = BinaryPrecision(threshold=0.1).to(device, dtype=torch.double)
-    t_jac = BinaryJaccardIndex(threshold=0.1).to(device, dtype=torch.double)
+    t_acc = BinaryAccuracy(threshold=0.5).to(device, dtype=torch.double)
+    t_dic = Dice(zero_division=0, threshold=0.5).to(device, dtype=torch.double) # zero_division=1
+    t_f1s = BinaryF1Score(threshold=0.5).to(device, dtype=torch.double)
+    t_rec = BinaryRecall(threshold=0.5).to(device, dtype=torch.double)
+    t_pre = BinaryPrecision(threshold=0.5).to(device, dtype=torch.double)
+    t_jac = BinaryJaccardIndex(threshold=0.5).to(device, dtype=torch.double)
 
-    v_acc = BinaryAccuracy(threshold=0.1).to(device, dtype=torch.double)
-    v_dic = Dice(zero_division=0, threshold=0.1, ignore_index=0).to(device, dtype=torch.double) # zero_division=1
-    v_f1s = BinaryF1Score(threshold=0.1).to(device, dtype=torch.double)
-    v_rec = BinaryRecall(threshold=0.1).to(device, dtype=torch.double)
-    v_pre = BinaryPrecision(threshold=0.1).to(device, dtype=torch.double)
-    v_jac = BinaryJaccardIndex(threshold=0.1).to(device, dtype=torch.double)
+    v_acc = BinaryAccuracy(threshold=0.5).to(device, dtype=torch.double)
+    v_dic = Dice(zero_division=0, threshold=0.5, ignore_index=0).to(device, dtype=torch.double) # zero_division=1
+    v_f1s = BinaryF1Score(threshold=0.5).to(device, dtype=torch.double)
+    v_rec = BinaryRecall(threshold=0.5).to(device, dtype=torch.double)
+    v_pre = BinaryPrecision(threshold=0.5).to(device, dtype=torch.double)
+    v_jac = BinaryJaccardIndex(threshold=0.5).to(device, dtype=torch.double)
 
     conf_txt(config)
     summary_txt(config, str(summary(unet)))
@@ -106,11 +112,11 @@ def train(config):
     best_ep_loss = 0
     best_ep_dice = 0
     best_dice = None
-    best_acc = None
 
     losses = []
     train_metrics = []
     val_metrics = []
+    sv = False
 
     for epoch in tqdm(range(config['hyperparams']['epochs'])):  # loop over the dataset multiple times
 
@@ -135,25 +141,27 @@ def train(config):
             #plot_batch(masks_pred, labels)
 
             loss = criterion[config['hyperparams']['crit']](outputs.double(), labels.unsqueeze(1)) # Utilizar para BCELoss o DiceLoss
+            #loss = criterion[config['hyperparams']['crit']](outputs.double(), labels.unsqueeze(1), alpha=0.8, beta=0.3) # Tversky loss
             #loss = criterion(outputs, labels.long()) # Utilizar para Cross entropy loss (multiclase)
 
             '''Metricas'''
             probs_ = nn.Sigmoid()  # Sigmoid para biclase
             pval_  = probs_(outputs) 
-            preds_ = torch.where(pval_>0.1, 1., 0.)
+            preds_ = torch.where(pval_>config['hyperparams']['thres'], 1., 0.)
+            #loss = criterion[config['hyperparams']['crit']](pval_, labels.unsqueeze(1)) # Utilizar para BCELoss o DiceLoss
             # Dice coefficient
             ba_tr_dice = dice_coeff(preds_, labels.unsqueeze(1))
             ep_tr_dice += ba_tr_dice.item()
             # Torchmetrics
-            t_dic.update(outputs, labels.unsqueeze(1).long())
+            t_dic.update(pval_, labels.unsqueeze(1).long())
             train_metrics.append([epoch, 
                                   i, 
                                   t_acc.forward(outputs, labels.unsqueeze(1)).item(),
                                   ba_tr_dice.item(), #t_dic.forward(outputs, labels.unsqueeze(1).long()).item(),
-                                  t_f1s.forward(outputs, labels.unsqueeze(1)).item(),
-                                  t_rec.forward(outputs, labels.unsqueeze(1)).item(),
-                                  t_pre.forward(outputs, labels.unsqueeze(1)).item(),
-                                  t_jac.forward(outputs, labels.unsqueeze(1)).item(),
+                                  t_f1s.forward(pval_, labels.unsqueeze(1)).item(),
+                                  t_rec.forward(pval_, labels.unsqueeze(1)).item(),
+                                  t_pre.forward(pval_, labels.unsqueeze(1)).item(),
+                                  t_jac.forward(pval_, labels.unsqueeze(1)).item(),
                                   ]
             ) 
             '''Fin metricas'''
@@ -180,14 +188,13 @@ def train(config):
 
 
         before_lr = optimizer.param_groups[0]["lr"]
-        if (epoch + 1) % 3 == 0: 
+        if (epoch + 1) % 10 == 0: 
             scheduler.step()
         after_lr = optimizer.param_groups[0]["lr"]
             
         epoch_loss = running_loss/(i + 1)  
 
         ep_val_dice = 0 
-        ep_val_acc = 0  
 
         with torch.no_grad():
             unet.eval()
@@ -201,7 +208,7 @@ def train(config):
                 #probs = nn.Softmax(dim=1) # Softmax para multiclase
                 probs = nn.Sigmoid()  # Sigmoid para biclase
                 pval  = probs(outs) 
-                preds = torch.where(pval>0.1, 1., 0.)
+                preds = torch.where(pval>config['hyperparams']['thres'], 1., 0.)
                 #preds = torch.argmax(pval, dim=1)
 
                 # Dice coefficient
@@ -213,14 +220,14 @@ def train(config):
                                       j, 
                                       v_acc.forward(outs, y.unsqueeze(1)).item(),
                                       batch_val_dice.item(), #v_dic.forward(outs, y.unsqueeze(1).long()).item(),
-                                      v_f1s.forward(outs, y.unsqueeze(1)).item(),
-                                      v_rec.forward(outs, y.unsqueeze(1)).item(),
-                                      v_pre.forward(outs, y.unsqueeze(1)).item(),
-                                      v_jac.forward(outs, y.unsqueeze(1)).item(),
+                                      v_f1s.forward(pval, y.unsqueeze(1)).item(),
+                                      v_rec.forward(pval, y.unsqueeze(1)).item(),
+                                      v_pre.forward(pval, y.unsqueeze(1)).item(),
+                                      v_jac.forward(pval, y.unsqueeze(1)).item(),
                                       ]
                 ) 
 
-                if (j+1) % 20 == 0: 
+                if (j+1) % 40 == 0: 
 
                     print(f'Metricas promedio (Validacion). Batch No. {j+1}')
                     print(f'Dice = {ep_val_dice/(j+1):.3f}')
@@ -242,31 +249,30 @@ def train(config):
                                   fn=f"{config['files']['pics']}-e{epoch + 1}-b{j}.pdf")
 
         ep_val_dice = ep_val_dice / (j + 1) 
-        ep_val_acc  = v_acc.compute()
 
         if epoch == 0:
             best_loss = epoch_loss
             best_ep_loss = epoch + 1
             best_dice = ep_val_dice
             best_ep_dice = epoch + 1
-            best_acc = ep_val_acc
 
         if epoch_loss < best_loss:
             best_loss = epoch_loss
             best_ep_loss = epoch + 1
+            sv = True
 
         if ep_val_dice > best_dice:
             best_dice = ep_val_dice
             best_ep_dice = epoch + 1
+            sv = True
             #print(f'\nUpdated weights file!')
 
-        try:
-            torch.save(unet.state_dict(), config['files']['model']+f'-e{epoch+1}.pth')
-        except:
-            print(f'\nNo se pudo guardar el archivo de pesos. Revise espacio en disco.')
-
-        if ep_val_acc > best_acc:
-            best_acc = ep_val_acc
+        if sv:
+            try:
+                torch.save(unet.state_dict(), config['files']['model']+f'-e{epoch+1}.pth')
+            except:
+                print(f'\nNo se pudo guardar el archivo de pesos. Revise espacio en disco.')
+            sv = False
 
         print(f'\nMetricas totales. Epoca {epoch+1} (Entrenamiento)')
         print(f'Loss     = {epoch_loss:.3f}, Best loss = {best_loss:.3f} (epoca {best_ep_loss})')
@@ -282,7 +288,6 @@ def train(config):
 
         print(f'\nMetricas totales. Epoca {epoch+1} (Validacion):')
         print(f'Dice     = {ep_val_dice:.3f}, Best dice = {best_dice:.3f} (epoca {best_ep_dice})')
-        print(f'Accuracy = {ep_val_acc:.3f}, Best accuracy = {best_acc:.3f}')
         
         print(f'Torchmetrics:')
         print(f'Accuracy  = {v_acc.compute():.3f}')

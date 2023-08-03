@@ -14,7 +14,7 @@ Numero de clases        = {config['hyperparams']['nclasses']}
 Umbral                  = {config['hyperparams']['thres']}     
 Peso de la clase        = {config['hyperparams']['class_w']}
 Recortar volumenes      = {config['hyperparams']['crop']}
-Nro capas entrenables   = {config['hyperparams']['crop']}
+Nro capas entrenables   = {config['hyperparams']['capas']}
 Modelo preentrenado     = {config['pretrained']}"""#.replace('\t', '')
 
     with open(config['files']['params'], 'w') as f:

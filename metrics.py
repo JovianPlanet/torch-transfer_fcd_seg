@@ -37,6 +37,8 @@ class DiceLoss(nn.Module):
         preds = nn.Sigmoid()  
         inputs = preds(inputs) 
 
+        #inputs = torch.where(inputs<0.1, 0., 1.)
+
         #flatten label and prediction tensors
         inputs = inputs.reshape(-1)#view(-1)
         targets = targets.reshape(-1)#view(-1)
@@ -45,7 +47,7 @@ class DiceLoss(nn.Module):
         #     inputs = torch.where(inputs==0, 1., 0.)#(inputs==0) 
         #     targets = torch.where(targets==0, 1., 0.)#(targets==0)
 
-        intersection = (inputs * targets).sum()                            
+        intersection = torch.dot(inputs, targets).sum()#(inputs * targets).sum()                            
         dice = torch.mean((2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth))  
         
         return 1.0 - dice
@@ -56,26 +58,23 @@ class BCEDiceLoss(nn.Module):
         super(BCEDiceLoss, self).__init__()
         self.bce = nn.BCEWithLogitsLoss()
         self.dice = DiceLoss() # Usar el dice de este codigo
-        #self.dice = Dice(zero_division=1, ignore_index=0).to(device) # Usar el dice de torchmetrics
 
     def forward(self, inputs, targets, smooth = 1):
         assert(inputs.shape == targets.shape)
-        # dice_loss = 1. - self.dice(inputs, targets.long()) # Para el dice de la libreria torchmetrics
         dice_loss = self.dice(inputs, targets)
         bce_loss = self.bce(inputs, targets)
 
         return  dice_loss + bce_loss
 
 class BCEDiceLossW(nn.Module):
-    def __init__(self, weight = None, size_average = True, device='device'):
-        super(BCEDiceLoss, self).__init__()
-        self.bce = nn.BCEWithLogitsLoss(pos_weight=weight)
+    def __init__(self, weight = None, size_average = True, device='device', pos_weight = None):
+        super(BCEDiceLossW, self).__init__()
+        self.pos_weight = pos_weight
+        self.bce = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
         self.dice = DiceLoss() # Usar el dice de este codigo
-        #self.dice = Dice(zero_division=1, ignore_index=0).to(device) # Usar el dice de torchmetrics
 
     def forward(self, inputs, targets, smooth = 1):
         assert(inputs.shape == targets.shape)
-        # dice_loss = 1. - self.dice(inputs, targets.long()) # Para el dice de la libreria torchmetrics
         dice_loss = self.dice(inputs, targets)
         bce_loss = self.bce(inputs, targets)
 
@@ -86,17 +85,18 @@ class FocalLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(FocalLoss, self).__init__()
 
-    def forward(self, inputs, targets, alpha=0.8, gamma=2, smooth=1):
+    def forward(self, inputs, targets, alpha=0.1, gamma=2, smooth=1):#alpha=0.8
         
         #comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = torch.sigmoid(inputs)       
+        #inputs = torch.sigmoid(inputs)       
         
         #flatten label and prediction tensors
         inputs = inputs.view(-1)
         targets = targets.view(-1)
         
         #first compute binary cross-entropy 
-        BCE = nn.CrossEntropyLoss()(inputs, targets)
+        BCE = nn.BCEWithLogitsLoss()(inputs, targets)
+        #BCE = DiceLoss()(inputs, targets)
         BCE_EXP = torch.exp(-BCE)
         focal_loss = alpha * (1-BCE_EXP)**gamma * BCE
                        
